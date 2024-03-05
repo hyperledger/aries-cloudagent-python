@@ -7,6 +7,7 @@ wallet.
 
 """
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -40,7 +41,9 @@ from ..ledger.multiple_ledger.base_manager import (
     BaseMultipleLedgerManager,
     MultipleLedgerManagerError,
 )
-from ..ledger.multiple_ledger.ledger_requests_executor import IndyLedgerRequestsExecutor
+from ..ledger.multiple_ledger.ledger_requests_executor import (
+    IndyLedgerRequestsExecutor,
+)
 from ..ledger.multiple_ledger.manager_provider import MultiIndyLedgerManagerProvider
 from ..messaging.responder import BaseResponder
 from ..multitenant.base import BaseMultitenantManager
@@ -71,10 +74,14 @@ from ..transport.outbound.manager import OutboundTransportManager, QueuedOutboun
 from ..transport.outbound.message import OutboundMessage
 from ..transport.outbound.status import OutboundSendStatus
 from ..transport.wire_format import BaseWireFormat
+from ..utils.profiles import get_subwallet_profiles_from_storage
 from ..utils.stats import Collector
 from ..utils.task_queue import CompletedTask, TaskQueue
 from ..vc.ld_proofs.document_loader import DocumentLoader
 from ..version import RECORD_TYPE_ACAPY_VERSION, __version__
+from ..wallet.anoncreds_upgrade import (
+    upgrade_wallet_to_anoncreds,
+)
 from ..wallet.did_info import DIDInfo
 from .dispatcher import Dispatcher
 from .error import StartupError
@@ -522,6 +529,8 @@ class Conductor:
             except Exception:
                 LOGGER.exception("Error accepting mediation invitation")
 
+        await self.check_for_wallet_upgrades_in_progress()
+
         # notify protcols of startup status
         await self.root_profile.notify(STARTUP_EVENT_TOPIC, {})
 
@@ -823,3 +832,20 @@ class Conductor:
                 raise StartupError(
                     f"Wallet type config [{storage_type_from_config}] doesn't match with the wallet type in storage [{storage_type_record.value}]"  # noqa: E501
                 )
+
+    async def check_for_wallet_upgrades_in_progress(self):
+        """Check for upgrade and upgrade if needed."""
+        multitenant_mgr = self.context.inject_or(BaseMultitenantManager)
+        if multitenant_mgr:
+            subwallet_profiles = await get_subwallet_profiles_from_storage(
+                self.root_profile
+            )
+            await asyncio.gather(
+                *[
+                    upgrade_wallet_to_anoncreds(profile, True)
+                    for profile in subwallet_profiles
+                ]
+            )
+
+        else:
+            await upgrade_wallet_to_anoncreds(self.root_profile)

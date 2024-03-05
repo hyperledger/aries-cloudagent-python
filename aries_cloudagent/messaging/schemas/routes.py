@@ -434,6 +434,8 @@ async def schemas_fix_schema_wallet_record(request: web.BaseRequest):
 
     is_anoncreds_profile_raise_web_exception(profile)
 
+    is_anoncreds_profile_raise_web_exception(profile)
+
     schema_id = request.match_info["schema_id"]
 
     async with profile.session() as session:
