@@ -71,6 +71,7 @@ WALLET_TYPE_ANONCREDS = "askar-anoncreds"
 
 CRED_FORMAT_INDY = "indy"
 CRED_FORMAT_JSON_LD = "json-ld"
+CRED_FORMAT_VC_DI = "vc_di"
 DID_METHOD_SOV = "sov"
 DID_METHOD_KEY = "key"
 KEY_TYPE_ED255 = "ed25519"
@@ -680,9 +681,7 @@ class DemoAgent:
         role: str = "TRUST_ANCHOR",
         cred_type: str = CRED_FORMAT_INDY,
     ):
-        if cred_type in [
-            CRED_FORMAT_INDY,
-        ]:
+        if cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             # if registering a did for issuing indy credentials, publish the did on the ledger
             self.log(f"Registering {self.ident} ...")
             if not ledger_url:
@@ -821,6 +820,23 @@ class DemoAgent:
                 await self.register_did(
                     did=new_did["result"]["did"],
                     verkey=new_did["result"]["verkey"],
+                    cred_type=CRED_FORMAT_INDY,
+                )
+                if self.endorser_role and self.endorser_role == "author":
+                    if endorser_agent:
+                        await self.admin_POST("/wallet/did/public?did=" + self.did)
+                        await asyncio.sleep(3.0)
+                else:
+                    await self.admin_POST("/wallet/did/public?did=" + self.did)
+                    await asyncio.sleep(3.0)
+            elif cred_type == CRED_FORMAT_VC_DI:
+                # assign public did
+                new_did = await self.admin_POST("/wallet/did/create")
+                self.did = new_did["result"]["did"]
+                await self.register_did(
+                    did=new_did["result"]["did"],
+                    verkey=new_did["result"]["verkey"],
+                    cred_type=CRED_FORMAT_VC_DI,
                 )
                 if self.endorser_role and self.endorser_role == "author":
                     if endorser_agent:
@@ -1693,6 +1709,7 @@ async def start_endorser_agent(
         genesis_data=genesis,
         genesis_txn_list=genesis_txn_list,
     )
+    # await endorser_agent.register_did(cred_type=CRED_FORMAT_INDY)
     await endorser_agent.register_did(cred_type=CRED_FORMAT_INDY)
     await endorser_agent.listen_webhooks(start_port + 2)
     await endorser_agent.start_process()

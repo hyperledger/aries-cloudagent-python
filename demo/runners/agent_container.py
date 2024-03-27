@@ -17,6 +17,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from runners.support.agent import (  # noqa:E402
     CRED_FORMAT_INDY,
     CRED_FORMAT_JSON_LD,
+    CRED_FORMAT_VC_DI,
     DID_METHOD_KEY,
     KEY_TYPE_BLS,
     WALLET_TYPE_INDY,
@@ -927,9 +928,7 @@ class AgentContainer:
     ):
         if not self.public_did:
             raise Exception("Can't create a schema/cred def without a public DID :-(")
-        if self.cred_type in [
-            CRED_FORMAT_INDY,
-        ]:
+        if self.cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             # need to redister schema and cred def on the ledger
             self.cred_def_id = await self.agent.create_schema_and_cred_def(
                 schema_name,
@@ -975,9 +974,7 @@ class AgentContainer:
     ):
         log_status("#13 Issue credential offer to X")
 
-        if self.cred_type in [
-            CRED_FORMAT_INDY,
-        ]:
+        if self.cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             cred_preview = {
                 "@type": CRED_PREVIEW_TYPE,
                 "attributes": cred_attrs,
@@ -1037,9 +1034,7 @@ class AgentContainer:
     async def request_proof(self, proof_request, explicit_revoc_required: bool = False):
         log_status("#20 Request proof of degree from alice")
 
-        if self.cred_type in [
-            CRED_FORMAT_INDY,
-        ]:
+        if self.cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             indy_proof_request = {
                 "name": (
                     proof_request["name"]
@@ -1122,9 +1117,7 @@ class AgentContainer:
 
         # log_status(f">>> last proof received: {self.agent.last_proof_received}")
 
-        if self.cred_type in [
-            CRED_FORMAT_INDY,
-        ]:
+        if self.cred_type in [CRED_FORMAT_INDY, CRED_FORMAT_VC_DI]:
             # return verified status
             return self.agent.last_proof_received["verified"]
 
@@ -1504,11 +1497,13 @@ async def create_agent_with_args(args, ident: str = None, extra_args: list = Non
 
     if "cred_type" in args and args.cred_type not in [
         CRED_FORMAT_INDY,
+        CRED_FORMAT_VC_DI,
     ]:
         public_did = None
         aip = 20
     elif "cred_type" in args and args.cred_type in [
         CRED_FORMAT_INDY,
+        CRED_FORMAT_VC_DI,
     ]:
         public_did = True
     else:

@@ -1,3 +1,4 @@
+from behave import given, then
 import json
 import os
 
@@ -6,7 +7,6 @@ from bdd_support.agent_backchannel_client import (
     agent_container_POST,
     async_sleep,
 )
-from behave import given, then
 
 
 def is_anoncreds(agent):
@@ -38,6 +38,7 @@ def step_impl(context, issuer, count=None):
         endpoint = "/anoncreds/revocation/registries"
 
     async_sleep(5.0)
+
     created_response = agent_container_GET(agent["agent"], endpoint)
     full_response = agent_container_GET(
         agent["agent"], endpoint, params={"state": "full"}

@@ -115,7 +115,7 @@ def alice_mediator(alice, mediation_invite):
 
 @pytest.fixture(scope="session")
 def multi_one_mediator(multi_one, mediation_invite):
-    logger.info(f"multi_one_mediator...")
+    logger.info("multi_one_mediator...")
     result = initialize_mediation(multi_one, mediation_invite)
     logger.info(f"...multi_one_mediator = {result}")
     yield result
