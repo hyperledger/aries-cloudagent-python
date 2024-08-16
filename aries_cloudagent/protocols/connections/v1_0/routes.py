@@ -19,7 +19,10 @@ from ....cache.base import BaseCache
 from ....connections.models.conn_record import ConnRecord, ConnRecordSchema
 from ....messaging.models.base import BaseModelError
 from ....messaging.models.openapi import OpenAPISchema
-from ....messaging.models.paginated_query import PaginatedQuerySchema, get_limit_offset
+from ....messaging.models.paginated_query import (
+    PaginatedQuerySchema,
+    get_paginated_query_params,
+)
 from ....messaging.valid import (
     ENDPOINT_EXAMPLE,
     ENDPOINT_VALIDATE,
@@ -469,7 +472,7 @@ async def connections_list(request: web.BaseRequest):
     if request.query.get("connection_protocol"):
         post_filter["connection_protocol"] = request.query["connection_protocol"]
 
-    limit, offset = get_limit_offset(request)
+    limit, offset, order_by, descending = get_paginated_query_params(request)
 
     profile = context.profile
     try:
@@ -479,6 +482,8 @@ async def connections_list(request: web.BaseRequest):
                 tag_filter,
                 limit=limit,
                 offset=offset,
+                order_by=order_by,
+                descending=descending,
                 post_filter_positive=post_filter,
                 alt=True,
             )
