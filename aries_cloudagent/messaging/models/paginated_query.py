@@ -4,6 +4,7 @@ from typing import Tuple
 
 from aiohttp.web import BaseRequest
 from marshmallow import fields
+from marshmallow.validate import OneOf
 
 from ...messaging.models.openapi import OpenAPISchema
 from ...storage.base import DEFAULT_PAGE_SIZE, MAXIMUM_PAGE_SIZE
@@ -30,6 +31,20 @@ class PaginatedQuerySchema(OpenAPISchema):
         validate=lambda x: x >= 0,
         metadata={"description": "Offset for pagination", "example": 0},
         error_messages={"validator_failed": "Value must be 0 or greater"},
+    )
+    order_by = fields.Str(
+        required=False,
+        load_default=None,
+        dump_only=True,  # Hide from schema by making it dump-only
+        load_only=True,  # Ensure it can still be loaded/validated
+        validate=OneOf(["id"]),  # Example of possible fields
+        metadata={"description": "Order results in descending order if true"},
+        error_messages={"validator_failed": "Ordering only support for column `id`"},
+    )
+    descending = fields.Bool(
+        required=False,
+        load_default=False,
+        metadata={"description": "Order results in descending order if true"},
     )
 
 
