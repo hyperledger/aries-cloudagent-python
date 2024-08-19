@@ -1,6 +1,10 @@
 from unittest import IsolatedAsyncioTestCase, TestCase, mock
 
-from .....connections.v1_0.messages.connection_invitation import ConnectionInvitation
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
+    InvitationMessage,
+)
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+
 from .....didcomm_prefix import DIDCommPrefix
 from ...message_types import FORWARD_INVITATION, PROTOCOL_PACKAGE
 from ..forward_invitation import ForwardInvitation
@@ -17,8 +21,11 @@ class TestConfig:
 
 class TestForwardInvitation(TestCase, TestConfig):
     def setUp(self):
-        self.connection_invitation = ConnectionInvitation(
-            label=self.label, recipient_keys=[self.key], endpoint=self.endpoint_url
+        self.service = Service(
+            recipient_keys=[self.key], service_endpoint=self.endpoint_url
+        )
+        self.connection_invitation = InvitationMessage(
+            label=self.label, services=[self.service]
         )
         self.invitation = ForwardInvitation(
             invitation=self.connection_invitation, message=self.test_message
@@ -64,10 +71,9 @@ class TestForwardInvitationSchema(IsolatedAsyncioTestCase, TestConfig):
     """Test forward invitation schema."""
 
     async def test_make_model(self):
+        service = Service(recipient_keys=[self.key], service_endpoint=self.endpoint_url)
         invitation = ForwardInvitation(
-            invitation=ConnectionInvitation(
-                label=self.label, recipient_keys=[self.key], endpoint=self.endpoint_url
-            ),
+            invitation=InvitationMessage(label=self.label, services=[service]),
             message=self.test_message,
         )
         data = invitation.serialize()

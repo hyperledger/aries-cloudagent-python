@@ -1,15 +1,15 @@
 from unittest import IsolatedAsyncioTestCase
 
-from ....core.in_memory import InMemoryProfile
-from ....protocols.connections.v1_0.messages.connection_invitation import (
-    ConnectionInvitation,
+from aries_cloudagent.protocols.didexchange.v1_0.messages.request import DIDXRequest
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
+    InvitationMessage,
 )
-from ....protocols.connections.v1_0.messages.connection_request import ConnectionRequest
-from ....protocols.connections.v1_0.models.connection_detail import ConnectionDetail
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+
+from ....core.in_memory import InMemoryProfile
 from ....storage.base import BaseStorage
 from ....storage.error import StorageNotFoundError
 from ..conn_record import ConnRecord
-from ..diddoc.diddoc import DIDDoc
 
 
 class TestConnRecord(IsolatedAsyncioTestCase):
@@ -354,14 +354,17 @@ class TestConnRecord(IsolatedAsyncioTestCase):
         )
         connection_id = await record.save(self.session)
 
-        invi = ConnectionInvitation(
-            label="abc123",
+        service = Service(
             recipient_keys=[self.test_verkey],
-            endpoint="http://localhost:8999",
+            service_endpoint="http://localhost:8999",
+        )
+        invi = InvitationMessage(
+            services=[service],
+            label="abc123",
         )
         await record.attach_invitation(self.session, invi)
         retrieved = await record.retrieve_invitation(self.session)
-        assert isinstance(retrieved, ConnectionInvitation)
+        assert isinstance(retrieved, InvitationMessage)
 
     async def test_attach_retrieve_request(self):
         record = ConnRecord(
@@ -370,13 +373,13 @@ class TestConnRecord(IsolatedAsyncioTestCase):
         )
         connection_id = await record.save(self.session)
 
-        req = ConnectionRequest(
-            connection=ConnectionDetail(did=self.test_did, did_doc=DIDDoc(self.test_did)),
+        req = DIDXRequest(
+            did=self.test_did,
             label="abc123",
         )
         await record.attach_request(self.session, req)
         retrieved = await record.retrieve_request(self.session)
-        assert isinstance(retrieved, ConnectionRequest)
+        assert isinstance(retrieved, DIDXRequest)
 
     async def test_attach_request_abstain_on_alien_deco(self):
         record = ConnRecord(
@@ -385,19 +388,19 @@ class TestConnRecord(IsolatedAsyncioTestCase):
         )
         connection_id = await record.save(self.session)
 
-        req = ConnectionRequest(
-            connection=ConnectionDetail(did=self.test_did, did_doc=DIDDoc(self.test_did)),
+        req = DIDXRequest(
+            did=self.test_did,
             label="abc123",
         )
         ser = req.serialize()
         ser["~alien"] = [{"nickname": "profile-image", "data": {"links": ["face.png"]}}]
-        alien_req = ConnectionRequest.deserialize(ser)
+        alien_req = DIDXRequest.deserialize(ser)
         await record.attach_request(self.session, alien_req)
         alien_ser = alien_req.serialize()
         assert "~alien" in alien_ser
 
         ser["~alien"] = None
-        alien_req = ConnectionRequest.deserialize(ser)
+        alien_req = DIDXRequest.deserialize(ser)
         await record.attach_request(self.session, alien_req)
         alien_ser = alien_req.serialize()
         assert "~alien" not in alien_ser

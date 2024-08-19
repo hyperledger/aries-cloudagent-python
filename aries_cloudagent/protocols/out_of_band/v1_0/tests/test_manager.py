@@ -69,7 +69,6 @@ from .....wallet.did_info import DIDInfo, KeyInfo
 from .....wallet.did_method import SOV
 from .....wallet.in_memory import InMemoryWallet
 from .....wallet.key_type import ED25519
-from ....connections.v1_0.messages.connection_invitation import ConnectionInvitation
 from ....didcomm_prefix import DIDCommPrefix
 from ....issue_credential.v1_0.message_types import CREDENTIAL_OFFER
 from ....issue_credential.v1_0.models.credential_exchange import V10CredentialExchange
@@ -1314,61 +1313,6 @@ class TestOOBManager(IsolatedAsyncioTestCase, TestConfig):
             )
 
             await self.manager.receive_invitation(oob_invitation)
-
-    async def test_receive_invitation_connection_protocol(self):
-        self.profile.context.update_settings({"public_invites": True})
-
-        mock_conn = mock.MagicMock(connection_id="dummy-connection")
-
-        with mock.patch.object(
-            test_module, "ConnectionManager", autospec=True
-        ) as conn_mgr_cls, mock.patch.object(
-            ConnRecord, "retrieve_by_id", mock.CoroutineMock()
-        ) as mock_conn_retrieve_by_id:
-            conn_mgr_cls.return_value = mock.MagicMock(
-                receive_invitation=mock.CoroutineMock(return_value=mock_conn)
-            )
-            mock_conn_retrieve_by_id.return_value = mock_conn
-            oob_invitation = InvitationMessage(
-                handshake_protocols=[
-                    pfx.qualify(HSProto.RFC160.name) for pfx in DIDCommPrefix
-                ],
-                label="test",
-                _id="test123",
-                services=[
-                    OobService(
-                        recipient_keys=[
-                            DIDKey.from_public_key_b58(
-                                "9WCgWKUaAJj3VWxxtzvvMQN3AoFxoBtBDo9ntwJnVVCC",
-                                ED25519,
-                            ).did
-                        ],
-                        routing_keys=[],
-                        service_endpoint="http://localhost",
-                    )
-                ],
-                requests_attach=[],
-            )
-            oob_record = await self.manager.receive_invitation(oob_invitation)
-            conn_mgr_cls.return_value.receive_invitation.assert_called_once_with(
-                invitation=ANY,
-                their_public_did=None,
-                auto_accept=None,
-                alias=None,
-                mediation_id=None,
-            )
-            _, kwargs = conn_mgr_cls.return_value.receive_invitation.call_args
-            invitation = kwargs["invitation"]
-            assert isinstance(invitation, ConnectionInvitation)
-
-            assert invitation.endpoint == "http://localhost"
-            assert invitation.recipient_keys == [
-                "9WCgWKUaAJj3VWxxtzvvMQN3AoFxoBtBDo9ntwJnVVCC"
-            ]
-            assert not invitation.routing_keys
-
-            assert oob_record.state == "deleted"
-            assert oob_record._previous_state == OobRecord.STATE_DONE
 
     async def test_receive_invitation_services_with_neither_service_blocks_nor_dids(
         self,

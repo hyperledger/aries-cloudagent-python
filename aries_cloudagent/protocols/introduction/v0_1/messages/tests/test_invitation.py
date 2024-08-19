@@ -1,6 +1,10 @@
 from unittest import IsolatedAsyncioTestCase, mock
 
-from .....connections.v1_0.messages.connection_invitation import ConnectionInvitation
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
+    InvitationMessage,
+)
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+
 from ...message_types import PROTOCOL_PACKAGE
 from ..invitation import Invitation as IntroInvitation
 
@@ -15,9 +19,10 @@ class TestInvitation(IsolatedAsyncioTestCase):
         self.key = "8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"
         self.test_message = "test message"
 
-        self.conn_invi_msg = ConnectionInvitation(
+        self.service = Service(did=self.test_did)
+        self.conn_invi_msg = InvitationMessage(
             label=self.label,
-            did=self.test_did,
+            services=[self.service],
         )
         self.intro_invitation = IntroInvitation(
             invitation=self.conn_invi_msg,
