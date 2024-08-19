@@ -126,6 +126,9 @@ class DefaultContextBuilder(ContextBuilder):
         wallet_type = self.settings.get("wallet.type")
         context.injector.bind_instance(PluginRegistry, plugin_registry)
 
+        # Connection management endpoints
+        plugin_registry.register_plugin("aries_cloudagent.connections")
+
         # Register standard protocol plugins
         if not self.settings.get("transport.disabled"):
             plugin_registry.register_package("aries_cloudagent.protocols")
