@@ -224,23 +224,25 @@ tests = ["apispec[marshmallow,yaml]", "openapi-spec-validator (==0.7.1)", "pytes
 yaml = ["PyYAML (>=3.10)"]
 
 [[package]]
-name = "aries_askar"
-version = "0.3.2"
-description = ""
+name = "aries-askar-ff137"
+version = "0.3.3b0"
+description = "UNKNOWN"
 optional = true
 python-versions = ">=3.6.3"
-files = []
-develop = false
+files = [
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:32d6ed2366527b733a6025c19fb6f52f4547a3b2693cc11a1175b0ca3bfc8792"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:54214ac04c3f06d7dc302c0592787f9a998c8e104f8f2ee382fc2645efef6e41"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:c7f5517c3c910aa34cee9359e184388f320d14bac7296b37d9dca4026c254bba"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-win_amd64.whl", hash = "sha256:5bdf83bdaacd4dc43a34a3a58c43e165a0b66303c9bddded64cdf6f84e015ee0"},
+]
 
 [package.dependencies]
-cached_property = ">=1.5.2,<1.6.0"
+cached-property = ">=1.5.2,<1.6.0"
 
 [package.source]
-type = "git"
-url = "https://github.com/ff137/aries-askar.git"
-reference = "test/order-by-scan"
-resolved_reference = "15564e50542313abff570b45711ba71587c4d855"
-subdirectory = "wrappers/python"
+type = "legacy"
+url = "https://test.pypi.org/simple"
+reference = "testpypi"
 
 [[package]]
 name = "async-timeout"
@@ -2895,11 +2897,11 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [extras]
-askar = ["anoncreds", "aries-askar", "indy-credx", "indy-vdr"]
+askar = ["anoncreds", "aries-askar-ff137", "indy-credx", "indy-vdr"]
 bbs = ["ursa-bbs-signatures"]
 didcommv2 = ["didcomm-messaging"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "006c3cb6d0a6da0df009cef3e80d6191adf2b63faaf5445ba9f9e7b005d1495d"
+content-hash = "daf9678e3368eb88f199ece438968f29ca1c5d8f0a9534e299056b7b106fc21e"

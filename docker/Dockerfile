@@ -16,8 +16,8 @@ ARG acapy_name="aries-cloudagent"
 ARG acapy_version
 ARG acapy_reqs=[askar,didcommv2]
 
-ENV HOME="/home/$user" \
-    APP_ROOT="$HOME" \
+ENV HOME="/home/$user"
+ENV APP_ROOT="$HOME" \
     LC_ALL=C.UTF-8 \
     LANG=C.UTF-8 \
     PIP_NO_CACHE_DIR=off \
@@ -96,7 +96,9 @@ USER $user
 COPY --from=build /src/dist/aries_cloudagent*.whl .
 RUN aries_cloudagent_package=$(find ./ -name "aries_cloudagent*.whl" | head -n 1) && \
     echo "Installing ${aries_cloudagent_package} ..." && \
-    pip install --no-cache-dir --find-links=. ${aries_cloudagent_package}${acapy_reqs} && \
+    pip install --no-cache-dir --find-links=. \
+    --extra-index-url https://test.pypi.org/simple/ \
+    ${aries_cloudagent_package}${acapy_reqs} && \
     rm aries_cloudagent*.whl && \
     chmod +rx $(python -m site --user-site) $HOME/.local
 
