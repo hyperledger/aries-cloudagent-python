@@ -224,20 +224,25 @@ tests = ["apispec[marshmallow,yaml]", "openapi-spec-validator (==0.7.1)", "pytes
 yaml = ["PyYAML (>=3.10)"]
 
 [[package]]
-name = "aries-askar"
-version = "0.3.2"
-description = ""
+name = "aries-askar-ff137"
+version = "0.3.3b0"
+description = "UNKNOWN"
 optional = true
 python-versions = ">=3.6.3"
 files = [
-    {file = "aries_askar-0.3.2-py3-none-macosx_10_9_universal2.whl", hash = "sha256:02ddbe1773ce72c57edafff5777a1337d4a678da7484596712949170fb3ca1dc"},
-    {file = "aries_askar-0.3.2-py3-none-manylinux2014_aarch64.whl", hash = "sha256:176eebcf833bb9974a162fd931c8d67669e4f0145b351ce9cb1289fd2d5a345c"},
-    {file = "aries_askar-0.3.2-py3-none-manylinux2014_x86_64.whl", hash = "sha256:63f9ab97db4778ced830a6d1135e1f8bd1ca564de27218bd114f1cffbd31b04c"},
-    {file = "aries_askar-0.3.2-py3-none-win_amd64.whl", hash = "sha256:6b4253377d5ed167ed94790e49c58584b68f897d2541ac4bb18fd37e9264164b"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-macosx_10_9_universal2.whl", hash = "sha256:32d6ed2366527b733a6025c19fb6f52f4547a3b2693cc11a1175b0ca3bfc8792"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-manylinux2014_aarch64.whl", hash = "sha256:54214ac04c3f06d7dc302c0592787f9a998c8e104f8f2ee382fc2645efef6e41"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-manylinux2014_x86_64.whl", hash = "sha256:c7f5517c3c910aa34cee9359e184388f320d14bac7296b37d9dca4026c254bba"},
+    {file = "aries_askar_ff137-0.3.3b0-py3-none-win_amd64.whl", hash = "sha256:5bdf83bdaacd4dc43a34a3a58c43e165a0b66303c9bddded64cdf6f84e015ee0"},
 ]
 
 [package.dependencies]
 cached-property = ">=1.5.2,<1.6.0"
+
+[package.source]
+type = "legacy"
+url = "https://test.pypi.org/simple"
+reference = "testpypi"
 
 [[package]]
 name = "async-timeout"
@@ -321,13 +326,13 @@ files = [
 
 [[package]]
 name = "certifi"
-version = "2024.7.4"
+version = "2024.8.30"
 description = "Python package for providing Mozilla's CA Bundle."
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "certifi-2024.7.4-py3-none-any.whl", hash = "sha256:c198e21b1289c2ab85ee4e67bb4b4ef3ead0892059901a8d5b622f24a1101e90"},
-    {file = "certifi-2024.7.4.tar.gz", hash = "sha256:5a1e7645bc0ec61a09e26c36f6106dd4cf40c6db3a1fb6352b0244e7fb057c7b"},
+    {file = "certifi-2024.8.30-py3-none-any.whl", hash = "sha256:922820b53db7a7257ffbda3f597266d435245903d80737e34f8a45ff3e3230d8"},
+    {file = "certifi-2024.8.30.tar.gz", hash = "sha256:bec941d2aa8195e248a60b31ff9f0558284cf01a52591ceda73ea9afffd69fd9"},
 ]
 
 [[package]]
@@ -1041,8 +1046,6 @@ files = [
     {file = "frozendict-2.4.4-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:d13b4310db337f4d2103867c5a05090b22bc4d50ca842093779ef541ea9c9eea"},
     {file = "frozendict-2.4.4-cp39-cp39-win_amd64.whl", hash = "sha256:b3b967d5065872e27b06f785a80c0ed0a45d1f7c9b85223da05358e734d858ca"},
     {file = "frozendict-2.4.4-cp39-cp39-win_arm64.whl", hash = "sha256:4ae8d05c8d0b6134bfb6bfb369d5fa0c4df21eabb5ca7f645af95fdc6689678e"},
-    {file = "frozendict-2.4.4-py311-none-any.whl", hash = "sha256:705efca8d74d3facbb6ace80ab3afdd28eb8a237bfb4063ed89996b024bc443d"},
-    {file = "frozendict-2.4.4-py312-none-any.whl", hash = "sha256:d9647563e76adb05b7cde2172403123380871360a114f546b4ae1704510801e5"},
     {file = "frozendict-2.4.4.tar.gz", hash = "sha256:3f7c031b26e4ee6a3f786ceb5e3abf1181c4ade92dce1f847da26ea2c96008c7"},
 ]
 
@@ -1164,13 +1167,13 @@ license = ["ukkonen"]
 
 [[package]]
 name = "idna"
-version = "3.7"
+version = "3.8"
 description = "Internationalized Domain Names in Applications (IDNA)"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 files = [
-    {file = "idna-3.7-py3-none-any.whl", hash = "sha256:82fee1fc78add43492d3a1898bfa6d8a904cc97d8427f683ed8e798d07761aa0"},
-    {file = "idna-3.7.tar.gz", hash = "sha256:028ff3aadf0609c1fd278d8ea3089299412a7a8b9bd005dd08b9f8285bcb5cfc"},
+    {file = "idna-3.8-py3-none-any.whl", hash = "sha256:050b4e5baadcd44d760cedbd2b8e639f2ff89bbc7a5730fcc662954303377aac"},
+    {file = "idna-3.8.tar.gz", hash = "sha256:d838c2c0ed6fced7693d5e8ab8e734d5f8fda53a039c0164afb0b82e771e3603"},
 ]
 
 [[package]]
@@ -2891,11 +2894,11 @@ idna = ">=2.0"
 multidict = ">=4.0"
 
 [extras]
-askar = ["anoncreds", "aries-askar", "indy-credx", "indy-vdr"]
+askar = ["anoncreds", "aries-askar-ff137", "indy-credx", "indy-vdr"]
 bbs = ["ursa-bbs-signatures"]
 didcommv2 = ["didcomm-messaging"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "dc5285058e717aa141d57330e8fed94a0eb55135df1b6af7b3986893e5a0da14"
+content-hash = "921b2996c4f3460829df1358d5e09aecd3f078d66de87cf6b691d5df3f0b14c9"
