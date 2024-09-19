@@ -4,6 +4,7 @@ from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
     InvitationMessage,
 )
 from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+from aries_cloudagent.protocols.out_of_band.v1_0.models.invitation import InvitationRecord
 from aries_cloudagent.tests import mock
 
 from ......messaging.base_handler import HandlerException
@@ -58,17 +59,18 @@ class TestInvitationRequestHandler(IsolatedAsyncioTestCase):
             services=[service],
         )
         mock_conn_rec = mock.MagicMock(connection_id="dummy")
+        invite_rec = InvitationRecord()
 
         responder = MockResponder()
         with mock.patch.object(
             test_module, "OutOfBandManager", autospec=True
         ) as mock_mgr:
             mock_mgr.return_value.create_invitation = mock.CoroutineMock(
-                return_value=(mock_conn_rec, conn_invitation)
+                return_value=invite_rec
             )
 
             await handler.handle(self.context, responder)
-            mock_mgr.return_value.create_invitation.assert_called_once_with()
+            mock_mgr.return_value.create_invitation.assert_called_once()
 
             messages = responder.messages
             assert len(messages) == 1

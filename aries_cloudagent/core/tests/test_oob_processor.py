@@ -38,6 +38,7 @@ class TestOobProcessor(IsolatedAsyncioTestCase):
             save=mock.CoroutineMock(),
         )
         self.context = RequestContext.test_context()
+        self.context.message = InvitationMessage()
 
     async def test_clean_finished_oob_record_no_multi_use_no_request_attach(self):
         test_message = InvitationMessage()

@@ -1,9 +1,11 @@
 from unittest import IsolatedAsyncioTestCase, mock
 
+from aries_cloudagent.did.did_key import DIDKey
 from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
     InvitationMessage,
 )
 from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+from aries_cloudagent.wallet.key_type import ED25519
 
 from ...message_types import PROTOCOL_PACKAGE
 from ..invitation import Invitation as IntroInvitation
@@ -17,12 +19,19 @@ class TestInvitation(IsolatedAsyncioTestCase):
         self.endpoint_url = "https://example.com/endpoint"
         self.endpoint_did = "did:sov:A2wBhNYhMrjHiqZDTUYH7u"
         self.key = "8HH5gYEeNc3z7PYXmd54d4x6qAfCNrqQqEB3nS7Zfu7K"
+        self.did_key = DIDKey.from_public_key_b58(self.key, ED25519)
         self.test_message = "test message"
 
-        self.service = Service(did=self.test_did)
+        self.service = Service(
+            _id="asdf",
+            _type="did-communication",
+            recipient_keys=[self.did_key.did],
+            service_endpoint=self.endpoint_url,
+        )
         self.conn_invi_msg = InvitationMessage(
             label=self.label,
             services=[self.service],
+            handshake_protocols=["didexchange/1.1"],
         )
         self.intro_invitation = IntroInvitation(
             invitation=self.conn_invi_msg,
