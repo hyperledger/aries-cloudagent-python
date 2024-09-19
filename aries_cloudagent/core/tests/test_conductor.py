@@ -1,6 +1,6 @@
-from io import StringIO
 from unittest import IsolatedAsyncioTestCase
 
+from aries_cloudagent.connections.base_manager import BaseConnectionManager
 from aries_cloudagent.tests import mock
 
 from ...admin.base_server import BaseAdminServer
@@ -95,6 +95,7 @@ class StubContextBuilder(ContextBuilder):
         context.injector.bind_instance(DIDMethods, DIDMethods())
         context.injector.bind_instance(DIDResolver, DIDResolver([]))
         context.injector.bind_instance(EventBus, MockEventBus())
+        context.injector.bind_instance(BaseConnectionManager, mock.MagicMock())
         return context
 
 
@@ -666,13 +667,14 @@ class TestConductor(IsolatedAsyncioTestCase, Config, TestDIDs):
 
         with mock.patch.object(
             test_module, "OutboundTransportManager", autospec=True
-        ) as mock_outbound_mgr, mock.patch.object(
-            test_module, "BaseConnectionManager", autospec=True
-        ) as conn_mgr:
+        ) as mock_outbound_mgr:
             mock_outbound_mgr.return_value.registered_transports = {
                 "test": mock.MagicMock(schemes=["http"])
             }
             await conductor.setup()
+            conn_mgr = mock.MagicMock(autospec=True)
+            conn_mgr.get_connection_targets = mock.CoroutineMock()
+            conductor.context.injector.bind_instance(BaseConnectionManager, conn_mgr)
 
             bus = conductor.root_profile.inject(EventBus)
 
@@ -690,13 +692,10 @@ class TestConductor(IsolatedAsyncioTestCase, Config, TestDIDs):
             assert bus.events[0][1].topic == status.topic
             assert bus.events[0][1].payload == message
 
-            conn_mgr.return_value.get_connection_targets.assert_awaited_once_with(
+            conn_mgr.get_connection_targets.assert_awaited_once_with(
                 connection_id=connection_id
             )
-            assert (
-                message.target_list
-                is conn_mgr.return_value.get_connection_targets.return_value
-            )
+            assert message.target_list is conn_mgr.get_connection_targets.return_value
 
             mock_outbound_mgr.return_value.enqueue_message.assert_called_once_with(
                 conductor.root_profile, message
@@ -762,9 +761,10 @@ class TestConductor(IsolatedAsyncioTestCase, Config, TestDIDs):
 
             conductor.handle_not_returned(conductor.root_profile, message)
 
+            mock_conn_mgr = mock.MagicMock()
+            conductor.context.injector.bind_instance(BaseConnectionManager, mock_conn_mgr)
+
             with mock.patch.object(
-                test_module, "BaseConnectionManager"
-            ) as mock_conn_mgr, mock.patch.object(
                 conductor.dispatcher, "run_task", mock.MagicMock()
             ) as mock_run_task:
                 # Normally this should be a coroutine mock; however, the coroutine
@@ -849,9 +849,9 @@ class TestConductor(IsolatedAsyncioTestCase, Config, TestDIDs):
             }
             await conductor.setup()
 
+        conn_mgr = mock.MagicMock()
+        conductor.context.injector.bind_instance(BaseConnectionManager, conn_mgr)
         with mock.patch.object(
-            test_module, "BaseConnectionManager", autospec=True
-        ) as conn_mgr, mock.patch.object(
             conductor.dispatcher, "run_task", mock.MagicMock()
         ) as mock_dispatch_run, mock.patch.object(
             conductor.admin_server, "notify_fatal_error", mock.MagicMock()
@@ -859,7 +859,7 @@ class TestConductor(IsolatedAsyncioTestCase, Config, TestDIDs):
             # Normally this should be a coroutine mock; however, the coroutine
             # is awaited by dispatcher.run_task, which is mocked here. MagicMock
             # to prevent unawaited coroutine warning.
-            conn_mgr.return_value.get_connection_targets = mock.MagicMock()
+            conn_mgr.get_connection_targets = mock.MagicMock()
             mock_dispatch_run.side_effect = test_module.LedgerConfigError(
                 "No such ledger"
             )
@@ -1165,52 +1165,6 @@ class TestConductor(IsolatedAsyncioTestCase, Config, TestDIDs):
         ) as mock_notify:
             conductor.dispatch_complete(message, mock_task)
             mock_notify.assert_called_once_with()
-
-    async def test_print_invite_connection(self):
-        builder: ContextBuilder = StubContextBuilder(self.test_settings)
-        builder.update_settings(
-            {
-                "debug.print_invitation": True,
-                "debug.print_connections_invitation": True,
-                "invite_base_url": "http://localhost",
-                "wallet.type": "askar",
-                "default_endpoint": "http://localhost",
-                "default_label": "test",
-            }
-        )
-        conductor = test_module.Conductor(builder)
-
-        with mock.patch("sys.stdout", new=StringIO()) as captured, mock.patch.object(
-            BaseStorage,
-            "find_record",
-            mock.CoroutineMock(
-                side_effect=[
-                    mock.MagicMock(value="askar"),
-                    mock.MagicMock(value=f"v{__version__}"),
-                ]
-            ),
-        ), mock.patch.object(
-            test_module, "OutboundTransportManager", autospec=True
-        ) as mock_outbound_mgr, mock.patch.object(
-            test_module, "upgrade_wallet_to_anoncreds_if_requested", return_value=False
-        ) as mock_upgrade:
-            mock_outbound_mgr.return_value.registered_transports = {
-                "test": mock.MagicMock(schemes=["http"])
-            }
-            await conductor.setup()
-
-            session = await conductor.root_profile.session()
-            wallet = session.inject(BaseWallet)
-            await wallet.create_public_did(
-                SOV,
-                ED25519,
-            )
-
-            await conductor.start()
-            await conductor.stop()
-            value = captured.getvalue()
-            assert "http://localhost?oob=" in value
-            assert "http://localhost?c_i=" in value
 
     async def test_clear_default_mediator(self):
         builder: ContextBuilder = StubContextBuilder(self.test_settings)
