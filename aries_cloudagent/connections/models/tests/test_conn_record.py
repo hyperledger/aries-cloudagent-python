@@ -5,6 +5,8 @@ from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
     InvitationMessage,
 )
 from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+from aries_cloudagent.wallet.key_type import ED25519
+from ....did.did_key import DIDKey
 
 from ....core.in_memory import InMemoryProfile
 from ....storage.base import BaseStorage
@@ -19,6 +21,7 @@ class TestConnRecord(IsolatedAsyncioTestCase):
         self.test_seed = "testseed000000000000000000000001"
         self.test_did = "55GkHamhTU1ZbTbV2ab9DE"
         self.test_verkey = "3Dn1SJNPaCXcvvJvSbsFWP2xaCjMom3can8CQNhWrTRx"
+        self.test_didkey = DIDKey.from_public_key_b58(self.test_verkey, ED25519)
         self.test_endpoint = "http://localhost"
 
         self.test_target_did = "GbuDUYXaUZRfHD2jeDuQuP"
@@ -355,10 +358,13 @@ class TestConnRecord(IsolatedAsyncioTestCase):
         connection_id = await record.save(self.session)
 
         service = Service(
-            recipient_keys=[self.test_verkey],
+            _id="asdf",
+            _type="did-communication",
+            recipient_keys=[self.test_didkey.did],
             service_endpoint="http://localhost:8999",
         )
         invi = InvitationMessage(
+            handshake_protocols=["didexchange/1.1"],
             services=[service],
             label="abc123",
         )
@@ -431,11 +437,11 @@ class TestConnRecord(IsolatedAsyncioTestCase):
             state=ConnRecord.State.INIT,
             my_did=self.test_did,
             their_role=ConnRecord.Role.REQUESTER,
-            connection_protocol="connections/1.0",
+            connection_protocol="didexchange/1.0",
         )
         ser = record.serialize()
         deser = ConnRecord.deserialize(ser)
-        assert deser.connection_protocol == "connections/1.0"
+        assert deser.connection_protocol == "didexchange/1.0"
 
     async def test_metadata_set_get(self):
         record = ConnRecord(

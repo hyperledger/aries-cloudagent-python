@@ -2,7 +2,9 @@
 
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import call
+import secrets
 
+import base58
 from pydid import DID, DIDDocument, DIDDocumentBuilder
 from pydid.doc.builder import ServiceBuilder
 from pydid.verification_method import (
@@ -31,9 +33,6 @@ from ...did.did_key import DIDKey
 from ...messaging.responder import BaseResponder, MockResponder
 from ...multitenant.base import BaseMultitenantManager
 from ...multitenant.manager import MultitenantManager
-from ...protocols.coordinate_mediation.v1_0.models.mediation_record import (
-    MediationRecord,
-)
 from ...protocols.coordinate_mediation.v1_0.route_manager import (
     CoordinateMediationV1RouteManager,
     RouteManager,
@@ -46,7 +45,7 @@ from ...resolver.did_resolver import DIDResolver
 from ...storage.error import StorageNotFoundError
 from ...transport.inbound.receipt import MessageReceipt
 from ...utils.multiformats import multibase, multicodec
-from ...wallet.base import DIDInfo
+from ...wallet.base import BaseWallet, DIDInfo
 from ...wallet.did_method import SOV, DIDMethods
 from ...wallet.error import WalletNotFoundError
 from ...wallet.in_memory import InMemoryWallet
@@ -112,6 +111,13 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
                 DIDResolver: self.resolver,
             },
         )
+        async with self.profile.session() as session:
+            wallet = session.inject(BaseWallet)
+            info = await wallet.create_local_did(method=SOV, key_type=ED25519)
+
+        self.did = info.did
+        self.verkey = info.verkey
+
         self.context = self.profile.context
 
         self.multitenant_mgr = mock.MagicMock(MultitenantManager, autospec=True)
@@ -125,113 +131,6 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
 
         self.manager = BaseConnectionManager(self.profile)
         assert self.manager._profile
-
-    async def test_create_did_document(self):
-        did_info = DIDInfo(
-            self.test_did,
-            self.test_verkey,
-            None,
-            method=SOV,
-            key_type=ED25519,
-        )
-
-        did_doc = await self.manager.create_did_document(
-            did_info=did_info,
-            svc_endpoints=[self.test_endpoint],
-        )
-
-    async def test_create_did_document_mediation(self):
-        did_info = DIDInfo(
-            self.test_did,
-            self.test_verkey,
-            None,
-            method=SOV,
-            key_type=ED25519,
-        )
-        mediation_record = MediationRecord(
-            role=MediationRecord.ROLE_CLIENT,
-            state=MediationRecord.STATE_GRANTED,
-            connection_id=self.test_mediator_conn_id,
-            routing_keys=self.test_mediator_routing_keys,
-            endpoint=self.test_mediator_endpoint,
-        )
-        doc = await self.manager.create_did_document(
-            did_info, mediation_records=[mediation_record]
-        )
-        assert doc.service
-        services = list(doc.service.values())
-        assert len(services) == 1
-        (service,) = services
-        assert service.routing_keys
-        service_routing_key = service.routing_keys[0]
-        assert service_routing_key == mediation_record.routing_keys[0]
-        assert service.endpoint == mediation_record.endpoint
-
-    async def test_create_did_document_multiple_mediators(self):
-        did_info = DIDInfo(
-            self.test_did,
-            self.test_verkey,
-            None,
-            method=SOV,
-            key_type=ED25519,
-        )
-        mediation_record1 = MediationRecord(
-            role=MediationRecord.ROLE_CLIENT,
-            state=MediationRecord.STATE_GRANTED,
-            connection_id=self.test_mediator_conn_id,
-            routing_keys=self.test_mediator_routing_keys,
-            endpoint=self.test_mediator_endpoint,
-        )
-        mediation_record2 = MediationRecord(
-            role=MediationRecord.ROLE_CLIENT,
-            state=MediationRecord.STATE_GRANTED,
-            connection_id="mediator-conn-id2",
-            routing_keys=[
-                "did:key:z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDz#z6Mkgg342Ycpuk263R9d8Aq6MUaxPn1DDeHyGo38EefXmgDz"
-            ],
-            endpoint="http://mediatorw.example.com",
-        )
-        doc = await self.manager.create_did_document(
-            did_info, mediation_records=[mediation_record1, mediation_record2]
-        )
-        assert doc.service
-        services = list(doc.service.values())
-        assert len(services) == 1
-        (service,) = services
-        assert service.routing_keys[0] == mediation_record1.routing_keys[0]
-        assert service.routing_keys[1] == mediation_record2.routing_keys[0]
-        assert service.endpoint == mediation_record2.endpoint
-
-    async def test_create_did_document_mediation_svc_endpoints_overwritten(self):
-        did_info = DIDInfo(
-            self.test_did,
-            self.test_verkey,
-            None,
-            method=SOV,
-            key_type=ED25519,
-        )
-        mediation_record = MediationRecord(
-            role=MediationRecord.ROLE_CLIENT,
-            state=MediationRecord.STATE_GRANTED,
-            connection_id=self.test_mediator_conn_id,
-            routing_keys=self.test_mediator_routing_keys,
-            endpoint=self.test_mediator_endpoint,
-        )
-        self.route_manager.routing_info = mock.CoroutineMock(
-            return_value=(mediation_record.routing_keys, mediation_record.endpoint)
-        )
-        doc = await self.manager.create_did_document(
-            did_info,
-            svc_endpoints=[self.test_endpoint],
-            mediation_records=[mediation_record],
-        )
-        assert doc.service
-        services = list(doc.service.values())
-        assert len(services) == 1
-        (service,) = services
-        service_public_keys = service.routing_keys[0]
-        assert service_public_keys == mediation_record.routing_keys[0]
-        assert service.endpoint == mediation_record.endpoint
 
     async def test_did_key_storage(self):
         await self.manager.add_key_for_did(
@@ -252,7 +151,7 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
 
     async def test_fetch_connection_targets_in_progress_conn(self):
         mock_conn = mock.MagicMock(
-            my_did=self.test_did,
+            my_did=self.did,
             their_did=self.test_target_did,
             connection_id="dummy",
             their_role=ConnRecord.Role.RESPONDER.rfc23,
@@ -275,6 +174,7 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             state=ConnRecord.State.INVITATION.rfc23,
             invitation_msg_id="test-invite-msg-id",
         )
+        mock_conn.retrieve_invitation = mock.CoroutineMock()
         with mock.patch.object(
             self.manager,
             "_fetch_connection_targets_for_invitation",
@@ -292,11 +192,15 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             connection_id="dummy",
             their_role=ConnRecord.Role.RESPONDER.rfc23,
             state=ConnRecord.State.INVITATION.rfc23,
+            invitation_msg_id=None,
+            invitation_key=None,
         )
         with mock.patch.object(
             self.manager,
             "resolve_invitation",
-            mock.CoroutineMock(),
+            mock.CoroutineMock(
+                return_value=(mock.MagicMock(), mock.MagicMock(), mock.MagicMock())
+            ),
         ) as mock_resolve_invitation:
             await self.manager._fetch_targets_for_connection_in_progress(
                 mock_conn, self.test_did
@@ -350,7 +254,7 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             self.resolver.resolve = mock.CoroutineMock(return_value=did_doc)
             self.context.injector.bind_instance(DIDResolver, self.resolver)
 
-            invitation = InvitationMessage(did=did_doc.id)
+            invitation = InvitationMessage(services=[did_doc.id])
             mock_conn = mock.MagicMock(
                 my_did=did_doc.id,
                 their_did=self.test_target_did,
@@ -397,7 +301,7 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             did_doc = builder.build()
             self.resolver.resolve = mock.CoroutineMock(return_value=did_doc)
             self.context.injector.bind_instance(DIDResolver, self.resolver)
-            invitation = InvitationMessage(did=did_doc.id)
+            invitation = InvitationMessage(services=[did_doc.id])
             mock_conn = mock.MagicMock(
                 my_did=did_doc.id,
                 their_did=self.test_target_did,
@@ -920,8 +824,10 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             service = OOBService(
                 did=None,
                 service_endpoint=self.test_endpoint,
-                recipient_keys=[self.test_target_verkey],
-                routing_keys=[self.test_verkey],
+                recipient_keys=[
+                    DIDKey.from_public_key_b58(self.test_target_verkey, ED25519).did
+                ],
+                routing_keys=[DIDKey.from_public_key_b58(self.test_verkey, ED25519).did],
             )
             conn_invite = InvitationMessage(
                 services=[service],
@@ -952,8 +858,8 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
                 assert target.did == mock_conn.their_did
                 assert target.endpoint == service.service_endpoint
                 assert target.label == conn_invite.label
-                assert target.recipient_keys == service.recipient_keys
-                assert target.routing_keys == service.routing_keys
+                assert target.recipient_keys == [self.test_target_verkey]
+                assert target.routing_keys == [self.test_verkey]
                 assert target.sender_key == local_did.verkey
 
     async def test_get_connection_targets_from_cache(self):
@@ -1068,8 +974,10 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             service = OOBService(
                 did=None,
                 service_endpoint=self.test_endpoint,
-                recipient_keys=[self.test_target_verkey],
-                routing_keys=[self.test_verkey],
+                recipient_keys=[
+                    DIDKey.from_public_key_b58(self.test_target_verkey, ED25519).did
+                ],
+                routing_keys=[DIDKey.from_public_key_b58(self.test_verkey, ED25519).did],
             )
             conn_invite = InvitationMessage(
                 services=[service],
@@ -1093,14 +1001,14 @@ class TestBaseConnectionManager(IsolatedAsyncioTestCase):
             assert target.did == mock_conn.their_did
             assert target.endpoint == service.service_endpoint
             assert target.label == conn_invite.label
-            assert target.recipient_keys == service.recipient_keys
-            assert target.routing_keys == service.routing_keys
+            assert target.recipient_keys == [self.test_target_verkey]
+            assert target.routing_keys == [self.test_verkey]
             assert target.sender_key == local_did.verkey
 
     async def test_create_static_connection(self):
         with mock.patch.object(ConnRecord, "save", autospec=True) as mock_conn_rec_save:
             _my, _their, conn_rec = await self.manager.create_static_connection(
-                my_did=self.test_did,
+                my_did=base58.b58encode(secrets.token_bytes(16)).decode(),
                 their_did=self.test_target_did,
                 their_verkey=self.test_target_verkey,
                 their_endpoint=self.test_endpoint,

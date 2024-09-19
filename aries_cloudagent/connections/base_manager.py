@@ -6,6 +6,7 @@ For Connection, DIDExchange and OutOfBand Manager.
 import json
 import logging
 from typing import Dict, List, Optional, Sequence, Text, Tuple, Union
+import warnings
 
 import pydid
 from base58 import b58decode
@@ -298,6 +299,8 @@ class BaseConnectionManager:
     ) -> DIDDoc:
         """Create our DID doc for a given DID.
 
+        This method is deprecated and will be removed.
+
         Args:
             did_info (DIDInfo): The DID information (DID and verkey) used in the
                 connection.
@@ -310,6 +313,7 @@ class BaseConnectionManager:
             DIDDoc: The prepared `DIDDoc` instance.
 
         """
+        warnings.warn("create_did_document is deprecated and will be removed soon")
         did_doc = DIDDoc(did=did_info.did)
         did_controller = did_info.did
         did_key = did_info.verkey
