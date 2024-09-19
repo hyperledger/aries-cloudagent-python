@@ -34,7 +34,7 @@ class ConnRecord(BaseRecord):
 
         schema_class = "MaybeStoredConnRecordSchema"
 
-    SUPPORTED_PROTOCOLS = ("connections/1.0", DIDEX_1_0, DIDEX_1_1)
+    SUPPORTED_PROTOCOLS = (DIDEX_1_0, DIDEX_1_1)
 
     class Role(Enum):
         """RFC 160 (inviter, invitee) = RFC 23 (responder, requester)."""

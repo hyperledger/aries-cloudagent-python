@@ -679,7 +679,7 @@ class Conductor:
 
         # populate connection target(s)
         if not has_target and outbound.connection_id:
-            conn_mgr = BaseConnectionManager(profile)
+            conn_mgr = profile.inject(BaseConnectionManager)
             try:
                 outbound.target_list = await self.dispatcher.run_task(
                     conn_mgr.get_connection_targets(connection_id=outbound.connection_id)
