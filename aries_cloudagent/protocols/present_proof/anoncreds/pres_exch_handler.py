@@ -3,7 +3,7 @@
 import json
 import logging
 import time
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 from ....anoncreds.holder import AnonCredsHolder, AnonCredsHolderError
 from ....anoncreds.models.anoncreds_cred_def import CredDef
@@ -15,8 +15,6 @@ from ....core.error import BaseError
 from ....core.profile import Profile
 from ....indy.models.xform import indy_proof_req2non_revoc_intervals
 from ..indy.pres_exch_handler import IndyProofRequestContainer
-from ..v1_0.models.presentation_exchange import V10PresentationExchange
-from ..v2_0.models.pres_exchange import V20PresExRecord
 
 LOGGER = logging.getLogger(__name__)
 
@@ -219,7 +217,7 @@ class AnonCredsPresExchHandler:
 
     async def return_presentation(
         self,
-        pres_ex_record: Union[V10PresentationExchange, V20PresExRecord],
+        pres_ex_record: IndyProofRequestContainer,
         requested_credentials: Optional[dict] = None,
     ) -> dict:
         """Return Indy proof request as dict."""
