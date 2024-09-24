@@ -14,8 +14,8 @@ from ....anoncreds.revocation import AnonCredsRevocation
 from ....core.error import BaseError
 from ....core.profile import Profile
 from ....indy.models.xform import indy_proof_req2non_revoc_intervals
+from ..indy.pres_exch_handler import IndyProofRequestContainer
 from ..v1_0.models.presentation_exchange import V10PresentationExchange
-from ..v2_0.messages.pres_format import V20PresFormat
 from ..v2_0.models.pres_exchange import V20PresExRecord
 
 LOGGER = logging.getLogger(__name__)
@@ -37,15 +37,8 @@ class AnonCredsPresExchHandler:
         self._profile = profile
         self.holder = AnonCredsHolder(profile)
 
-    def _extract_proof_request(self, pres_ex_record):
-        if isinstance(pres_ex_record, V20PresExRecord):
-            return pres_ex_record.pres_request.attachment(V20PresFormat.Format.INDY)
-        elif isinstance(pres_ex_record, V10PresentationExchange):
-            return pres_ex_record._presentation_request.ser
-
-        raise TypeError(
-            "pres_ex_record must be V10PresentationExchange or V20PresExRecord"
-        )
+    def _extract_proof_request(self, pres_ex_record: IndyProofRequestContainer):
+        return pres_ex_record.get_indy_proof_request()
 
     def _get_requested_referents(
         self,
