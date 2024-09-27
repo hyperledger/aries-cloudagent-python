@@ -42,12 +42,9 @@ from ..ledger.multiple_ledger.manager_provider import MultiIndyLedgerManagerProv
 from ..messaging.responder import BaseResponder
 from ..multitenant.base import BaseMultitenantManager
 from ..multitenant.manager_provider import MultitenantManagerProvider
-from ..protocols.connections.v1_0.manager import (
-    ConnectionManager,
-    ConnectionManagerError,
-)
-from ..protocols.connections.v1_0.messages.connection_invitation import (
-    ConnectionInvitation,
+from ..connections.base_manager import (
+    BaseConnectionManager,
+    BaseConnectionManagerError,
 )
 from ..protocols.coordinate_mediation.mediation_invite_store import MediationInviteStore
 from ..protocols.coordinate_mediation.v1_0.manager import MediationManager
@@ -273,7 +270,7 @@ class Conductor:
             )
             # at the class level (!) should not be performed multiple times
             collector.wrap(
-                ConnectionManager,
+                BaseConnectionManager,
                 (
                     # "get_connection_targets",
                     "fetch_did_document",
@@ -393,7 +390,7 @@ class Conductor:
 
         # Create a static connection for use by the test-suite
         if context.settings.get("debug.test_suite_endpoint"):
-            mgr = ConnectionManager(self.root_profile)
+            mgr = BaseConnectionManager(self.root_profile)
             their_endpoint = context.settings["debug.test_suite_endpoint"]
             test_conn = await mgr.create_static_connection(
                 my_seed=hashlib.sha256(b"aries-protocol-test-subject").digest(),
@@ -449,29 +446,6 @@ class Conductor:
             except Exception:
                 LOGGER.exception("Error creating invitation")
 
-        # Print connections protocol invitation to the terminal
-        if context.settings.get("debug.print_connections_invitation"):
-            try:
-                mgr = ConnectionManager(self.root_profile)
-                _record, invite = await mgr.create_invitation(
-                    my_label=context.settings.get("debug.invite_label"),
-                    public=context.settings.get("debug.invite_public", False),
-                    multi_use=context.settings.get("debug.invite_multi_use", False),
-                    metadata=json.loads(
-                        context.settings.get("debug.invite_metadata_json", "{}")
-                    ),
-                )
-                base_url = context.settings.get("invite_base_url")
-                invite_url = invite.to_url(base_url)
-                print("Invitation URL (Connections protocol):")
-                print(invite_url, flush=True)
-                qr = QRCode(border=1)
-                qr.add_data(invite_url)
-                qr.print_ascii(invert=True)
-                del mgr
-            except Exception:
-                LOGGER.exception("Error creating invitation")
-
         # mediation connection establishment
         provided_invite: str = context.settings.get("mediation.invite")
 
@@ -488,27 +462,14 @@ class Conductor:
         # Accept mediation invitation if one was specified or stored
         if mediation_invite_record is not None:
             try:
-                mediation_connections_invite = context.settings.get(
-                    "mediation.connections_invite", False
-                )
-                invitation_handler = (
-                    ConnectionInvitation
-                    if mediation_connections_invite
-                    else InvitationMessage
-                )
-
                 if not mediation_invite_record.used:
                     # clear previous mediator configuration before establishing a
                     # new one
                     await MediationManager(self.root_profile).clear_default_mediator()
 
-                    mgr = (
-                        ConnectionManager(self.root_profile)
-                        if mediation_connections_invite
-                        else OutOfBandManager(self.root_profile)
-                    )
+                    mgr = OutOfBandManager(self.root_profile)
                     record = await mgr.receive_invitation(
-                        invitation=invitation_handler.from_url(
+                        invitation=InvitationMessage.from_url(
                             mediation_invite_record.invite
                         ),
                         auto_accept=True,
@@ -718,12 +679,12 @@ class Conductor:
 
         # populate connection target(s)
         if not has_target and outbound.connection_id:
-            conn_mgr = ConnectionManager(profile)
+            conn_mgr = profile.inject(BaseConnectionManager)
             try:
                 outbound.target_list = await self.dispatcher.run_task(
                     conn_mgr.get_connection_targets(connection_id=outbound.connection_id)
                 )
-            except ConnectionManagerError:
+            except BaseConnectionManagerError:
                 LOGGER.exception("Error preparing outbound message for transmission")
                 return OutboundSendStatus.UNDELIVERABLE
             except (LedgerConfigError, LedgerTransactionError) as e:

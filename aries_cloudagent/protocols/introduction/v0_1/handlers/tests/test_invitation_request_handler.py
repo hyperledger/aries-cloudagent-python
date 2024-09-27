@@ -1,13 +1,15 @@
 from unittest import IsolatedAsyncioTestCase
 
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.invitation import (
+    InvitationMessage,
+)
+from aries_cloudagent.protocols.out_of_band.v1_0.messages.service import Service
+from aries_cloudagent.protocols.out_of_band.v1_0.models.invitation import InvitationRecord
 from aries_cloudagent.tests import mock
 
 from ......messaging.base_handler import HandlerException
 from ......messaging.request_context import RequestContext
 from ......messaging.responder import MockResponder
-from ......protocols.connections.v1_0.messages.connection_invitation import (
-    ConnectionInvitation,
-)
 from ...messages.invitation import Invitation
 from ...messages.invitation_request import InvitationRequest
 from .. import invitation_request_handler as test_module
@@ -37,7 +39,7 @@ class TestInvitationRequestHandler(IsolatedAsyncioTestCase):
         inv_req = InvitationRequest(responder=responder, message="Hello")
 
         with mock.patch.object(
-            test_module, "ConnectionManager", autospec=True
+            test_module, "OutOfBandManager", autospec=True
         ) as mock_mgr:
             await handler.handle(self.context, responder)
 
@@ -45,26 +47,30 @@ class TestInvitationRequestHandler(IsolatedAsyncioTestCase):
         handler = test_module.InvitationRequestHandler()
         self.context.update_settings({"auto_accept_intro_invitation_requests": True})
 
-        conn_invitation = ConnectionInvitation(
-            label=TEST_LABEL,
+        service = Service(
             did=TEST_DID,
             recipient_keys=[TEST_VERKEY],
-            endpoint=TEST_ENDPOINT,
+            service_endpoint=TEST_ENDPOINT,
             routing_keys=[TEST_ROUTE_VERKEY],
+        )
+        conn_invitation = InvitationMessage(
+            label=TEST_LABEL,
             image_url=TEST_IMAGE_URL,
+            services=[service],
         )
         mock_conn_rec = mock.MagicMock(connection_id="dummy")
+        invite_rec = InvitationRecord()
 
         responder = MockResponder()
         with mock.patch.object(
-            test_module, "ConnectionManager", autospec=True
+            test_module, "OutOfBandManager", autospec=True
         ) as mock_mgr:
             mock_mgr.return_value.create_invitation = mock.CoroutineMock(
-                return_value=(mock_conn_rec, conn_invitation)
+                return_value=invite_rec
             )
 
             await handler.handle(self.context, responder)
-            mock_mgr.return_value.create_invitation.assert_called_once_with()
+            mock_mgr.return_value.create_invitation.assert_called_once()
 
             messages = responder.messages
             assert len(messages) == 1
