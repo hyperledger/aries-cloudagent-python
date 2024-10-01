@@ -242,6 +242,14 @@ class V20PresExRecord(BaseExchangeRecord):
         """Comparison between records."""
         return super().__eq__(other)
 
+    def get_indy_proof_request(self):
+        """Retrieve Indy Proof request from record."""
+        proof_request = self.pres_request.attachment(V20PresFormat.Format.INDY)
+        if not proof_request:
+            raise ValueError("No indy proof request on this record")
+
+        return proof_request
+
 
 class V20PresExRecordSchema(BaseExchangeSchema):
     """Schema for de/serialization of v2.0 presentation exchange records."""
